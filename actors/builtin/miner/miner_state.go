@@ -679,7 +679,7 @@ func (st *State) LoadSectorInfos(store adt.Store, sectors *abi.BitField) ([]*Sec
 	err := sectors.ForEach(func(i uint64) error {
 		sectorOnChain, found, err := st.GetSector(store, abi.SectorNumber(i))
 		if err != nil {
-			return fmt.Errorf("failed to load sector %d: %v", i, err)
+			return xerrors.Errorf("failed to load sector %d: %w", i, err)
 		} else if !found {
 			return fmt.Errorf("can't find sector %d", i)
 		}
@@ -764,7 +764,7 @@ func (st *State) LoadSectorInfosWithFaultMask(store adt.Store, sectors *abi.BitF
 		if !faulty {
 			sectorOnChain, found, err := st.GetSector(store, abi.SectorNumber(i))
 			if err != nil {
-				return fmt.Errorf("failed to load sector %d: %v", i, err)
+				return xerrors.Errorf("failed to load sector %d: %w", i, err)
 			} else if !found {
 				return fmt.Errorf("can't find sector %d", i)
 			}
