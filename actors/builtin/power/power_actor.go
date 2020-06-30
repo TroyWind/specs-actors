@@ -487,18 +487,18 @@ func (a Actor) processDeferredCronEvents(rt Runtime) error {
 				// Remove power and leave miner frozen
 				claim, found, err := st.GetClaim(store, event.MinerAddr)
 				if err != nil {
-					// TODO log this, failing without deducting power: bad
+					// TODO #564 log this, failing without deducting power: bad
 					return nil
 				}
 				if !found {
-					// TODO log this, failing without deducting power, but power doesn't exist so maybe ok?
+					// TODO #564 log this, failing without deducting power, but power doesn't exist so maybe ok?
 					return nil
 				}
 
 				// zero out miner power
 				err = st.AddToClaim(store, event.MinerAddr, claim.RawBytePower.Neg(), claim.QualityAdjPower.Neg())
 				if err != nil {
-					// TODO log this, failing without deducting power: bad
+					// TODO #564 log this, failing without deducting power: bad
 					return nil
 				}
 				return nil
