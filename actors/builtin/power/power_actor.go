@@ -198,8 +198,12 @@ type UpdateClaimedPowerParams struct {
 func (a Actor) UpdateClaimedPower(rt Runtime, params *UpdateClaimedPowerParams) *adt.EmptyValue {
 	rt.ValidateImmediateCallerType(builtin.StorageMinerActorCodeID)
 	minerAddr := rt.Message().Caller()
-	err := updateClaimInternal(rt, minerAddr, params.RawByteDelta, params.QualityAdjustedDelta)
-	builtin.RequireNoErr(rt, err, exitcode.ErrIllegalState, "failed to update power raw %s, qa %s", params.RawByteDelta, params.QualityAdjustedDelta)
+	var st State
+	rt.State().Transaction(&st, func() interface{} {
+		err := st.AddToClaim(adt.AsStore(rt), minerAddr, params.RawByteDelta, params.QualityAdjustedDelta)
+		builtin.RequireNoErr(rt, err, exitcode.ErrIllegalState, "failed to update power raw %s, qa %s", params.RawByteDelta, params.QualityAdjustedDelta)
+		return nil
+	})
 	return nil
 }
 
@@ -478,23 +482,27 @@ func (a Actor) processDeferredCronEvents(rt Runtime) error {
 		// Failures are unexpected here but will result in removal of miner power
 		// A log message would really help here.
 		if code != exitcode.Ok {
-			store := adt.AsStore(rt)
-			// Remove power and leave miner frozen
-			claim, found, err := st.GetClaim(store, event.MinerAddr)
-			if err != nil {
-				// TODO log this, failing without deducting power: bad
-				continue
-			}
-			if !found {
-				// TODO log this, failing without deducting power, but power doesn't exist so maybe ok?
-				continue
-			}
-			_ = claim
-			// zero out miner power
-			err = st.AddToClaim(store, event.MinerAddr, claim.RawBytePower.Neg(), claim.QualityAdjPower.Neg())
-			if err != nil {
-				// TODO log this, failing without deducting power: bad
-			}
+			rt.State().Transaction(&st, func() interface{} {
+				store := adt.AsStore(rt)
+				// Remove power and leave miner frozen
+				claim, found, err := st.GetClaim(store, event.MinerAddr)
+				if err != nil {
+					// TODO log this, failing without deducting power: bad
+					return nil
+				}
+				if !found {
+					// TODO log this, failing without deducting power, but power doesn't exist so maybe ok?
+					return nil
+				}
+
+				// zero out miner power
+				err = st.AddToClaim(store, event.MinerAddr, claim.RawBytePower.Neg(), claim.QualityAdjPower.Neg())
+				if err != nil {
+					// TODO log this, failing without deducting power: bad
+					return nil
+				}
+				return nil
+			})
 		}
 	}
 	return nil
@@ -510,16 +518,6 @@ func (a Actor) deleteMinerActor(rt Runtime, miner addr.Address) error {
 		st.MinerCount -= 1
 		return nil
 	}).(error)
-	return err
-}
-
-func updateClaimInternal(rt Runtime, minerAddr addr.Address, rawByteDelta, qualityAdjustedDelta abi.StoragePower) error {
-	var st State
-	var err error
-	rt.State().Transaction(&st, func() interface{} {
-		err = st.AddToClaim(adt.AsStore(rt), minerAddr, rawByteDelta, qualityAdjustedDelta)
-		return nil
-	})
 	return err
 }
 
