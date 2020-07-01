@@ -2,6 +2,8 @@ package reward
 
 import (
 	"github.com/filecoin-project/go-address"
+	"github.com/filecoin-project/specs-actors/dlog/dactorslog"
+	"go.uber.org/zap"
 
 	abi "github.com/filecoin-project/specs-actors/actors/abi"
 	big "github.com/filecoin-project/specs-actors/actors/abi/big"
@@ -77,6 +79,7 @@ func (a Actor) AwardBlockReward(rt vmr.Runtime, params *AwardBlockRewardParams) 
 	AssertMsg(big.Add(rewardPayable, penalty).LessThanEqual(priorBalance),
 		"reward payable %v + penalty %v exceeds balance %v", rewardPayable, penalty, priorBalance)
 
+	dactorslog.L.Debug("send reward to miner", zap.String("m addr", minerAddr.String()), zap.String("rewardPayable", rewardPayable.String()), zap.String("burn amount", penalty.String()))
 	_, code := rt.Send(minerAddr, builtin.MethodsMiner.AddLockedFund, &rewardPayable, rewardPayable)
 	builtin.RequireSuccess(rt, code, "failed to send reward to miner: %s", minerAddr)
 
