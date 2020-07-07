@@ -877,6 +877,8 @@ func (rt *Runtime) failTestNow(msg string, args ...interface{}) {
 
 func (rt *Runtime) ChargeGas(_ string, _, _ int64) {}
 
+func (rt *Runtime) ChargeGas(_ string, _, _ int64) {}
+
 type ReturnWrapper struct {
 	V runtime.CBORMarshaler
 }

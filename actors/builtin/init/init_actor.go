@@ -2,7 +2,9 @@ package init
 
 import (
 	addr "github.com/filecoin-project/go-address"
+	"github.com/filecoin-project/specs-actors/dlog/dactorslog"
 	cid "github.com/ipfs/go-cid"
+	"go.uber.org/zap"
 
 	abi "github.com/filecoin-project/specs-actors/actors/abi"
 	builtin "github.com/filecoin-project/specs-actors/actors/builtin"
@@ -79,6 +81,7 @@ func (a Actor) Exec(rt runtime.Runtime, params *ExecParams) *ExecReturn {
 	// Create an empty actor.
 	rt.CreateActor(params.CodeCID, idAddr)
 
+	dactorslog.L.Debug("init actor Exec", zap.String("idAddr", idAddr.String()), zap.String("uniqueAddress", uniqueAddress.String()), zap.String("code cid", params.CodeCID.String()))
 	// Invoke constructor.
 	_, code := rt.Send(idAddr, builtin.MethodConstructor, runtime.CBORBytes(params.ConstructorParams), rt.Message().ValueReceived())
 	builtin.RequireSuccess(rt, code, "constructor failed")
